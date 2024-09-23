@@ -1,25 +1,31 @@
 #define _CRT_SECURE_NO_WARNINGS
+#define MAX_STUDENTS 50 
+#define MAX_NAME_LENGTH 50  
+#define SCORE_RANGES 11  // 0-100分，每10分一个段，共11个段  
+
 #include <stdio.h>  
 #include <stdlib.h> //引入exit函数
 #include <string.h> // 引入字符串处理函数  
-#include <stdbool.h>
+#include <stdbool.h>//引入布尔类型
 
-// 定义学生信息的结构体  
+// √ 定义学生信息的结构体  
 struct Student
 {
-    char name[50];
+    char name[MAX_NAME_LENGTH];
     int id;
-    float score;
+    float score1;
+    float score2;
+    float score3;
 };
 
-// 定义函数来输入学生信息  
-void inputStudents(struct Student students[], int* count, int maxStudents) 
+// √ 定义函数来输入学生信息  
+void inputStudents(struct Student students[], int* count, int maxStudents)
 {
     int i = 0;
     char choice;
 
     printf("现在开始录入学生成绩信息，请按提示操作。\n");
-    while (i < maxStudents) 
+    while (i < maxStudents)
     {
         printf("学生姓名：\n");
         scanf("%49s", students[i].name); // 使用%49s限制输入长度以防溢出  
@@ -27,11 +33,17 @@ void inputStudents(struct Student students[], int* count, int maxStudents)
         printf("学生学号：\n");
         scanf("%d", &students[i].id);
 
-        printf("学生成绩：\n");
-        scanf("%f", &students[i].score);
+        printf("学生第一科成绩：\n");
+        scanf("%f", &students[i].score1);
+
+        printf("学生第二科成绩：\n");
+        scanf("%f", &students[i].score2);
+
+        printf("学生第三科成绩：\n");
+        scanf("%f", &students[i].score3);
 
         printf("是否继续输入下一名学生的信息？（y/n）\n");
-        while (scanf(" %c", &choice) != 1 || (choice != 'y' && choice != 'n')) 
+        while (scanf(" %c", &choice) != 1 || (choice != 'y' && choice != 'n'))
         { // 读取字符并跳过空白符  
             printf("输入不符合要求，请重新输入：\n");
         }
@@ -43,115 +55,213 @@ void inputStudents(struct Student students[], int* count, int maxStudents)
 
         i++;
     }
-    *count = i+1; // 更新已输入的学生数量  
-    printf("共录入%d名学生的信息。\n", i+1);
+    *count = i + 1; // 更新已输入的学生数量  
+    printf("共录入%d名学生的信息。\n", i + 1);
 }
 
-// 定义函数将学生的数据写入文件
+// √ 定义函数将学生的数据写入文件
 void writeStudentsToFile(const struct Student students[], int count, const char* filename)
 {
     printf("即将写入文件 students.txt ...\n");
     FILE* file = fopen(filename, "w"); // 打开文件以写入，如果文件不存在则创建  
-    if (file == NULL) 
+    if (file == NULL)
     {
         perror("Failed to open file");
         exit(EXIT_FAILURE); // 如果无法打开文件，则退出程序  
     }
 
-    for (int i = 0; i < count; i++) 
+    for (int i = 0; i < count; i++)
     {
         // 将学生信息写入文件  
-        fprintf(file, "%s %d %.2f\n", students[i].name, students[i].id, students[i].score);
+        fprintf(file, "%s %d %.2f %.2f %.2f\n", students[i].name, students[i].id, students[i].score1, students[i].score2, students[i].score3);
     }
 
     fclose(file); // 关闭文件  
     printf("学生信息已成功写入 %s 文件。\n", filename);
-    
+
 }
 
-// 定义函数读取文件内容
-void readAndDisplayStudentsFromFile(const char* filename) 
+// √ 定义函数实现从文件读取功能
+void readStudentsFromFile(const char* filename, struct Student* students, int* numStudents) 
 {
-    printf("读取文件内容 ...\n");
-    FILE* file = fopen(filename, "r"); // 打开文件以读取  
-    if (file == NULL) 
+    FILE* file = fopen(filename, "r");
+    if (file == NULL)
     {
         perror("Failed to open file");
-        exit(EXIT_FAILURE); // 如果无法打开文件，则退出程序  
+        exit(EXIT_FAILURE);
     }
-
-    char buffer[1024]; // 创建一个足够大的缓冲区来存储每行内容  
-    while (fgets(buffer, sizeof(buffer), file) != NULL) 
+    *numStudents = 0;
+    while (fscanf(file, "%49s %d %f %f %f", students[*numStudents].name, &students[*numStudents].id, &students[*numStudents].score1, &students[*numStudents].score2, &students[*numStudents].score3) == 5)
     {
-        // 去除可能存在的换行符  
-        buffer[strcspn(buffer, "\n")] = 0;
-
-        // 打印读取到的每行内容  
-        printf("%s\n", buffer); // 加上换行符以清晰分隔每个学生的信息  
-    }
-
-    fclose(file); // 关闭文件  
-}
-
-// 定义函数按成绩排序
-void sortStudentsByScore(struct Student students[], int count) 
-{
-    int i, j;
-    struct Student temp;
-    for (i = 0; i < count - 1; i++) 
-    {
-        for (j = 0; j < count - i - 1; j++)
+        (*numStudents)++;
+        if (*numStudents >= MAX_STUDENTS)
         {
-            if (students[j].score < students[j + 1].score) 
-            {
-                // 交换学生信息  
-                temp = students[j];
-                students[j] = students[j + 1];
-                students[j + 1] = temp;
-            }
+            fprintf(stderr, "Exceeded maximum number of students\n");
+            break;
         }
     }
-    printf("排序后的学生信息：\n");
-    for (int i = 0; i < count; i++)
-    {
-        printf("姓名：%s\t学号：%d\t成绩：%.2f\t\n", students[i].name, students[i].id, students[i].score);
-    }
+    fclose(file);
+    // 由于我们传递了相同的指针（即&count），这里不需要额外的操作  
 }
 
-// 定义函数按学号排序
-void sortStudentsById(struct Student students[], int count)
+// √ 定义函数实现排序功能
+void sortStudentsByScore(struct Student students[], int count)
 {
+    int choice;
     int i, j;
     struct Student temp;
-    for (i = 0; i < count - 1; i++)
+    printf("输入数字以选择你想排序的方式：\n1.按第一门成绩  2.按第二门成绩  3.按第三门成绩  4.按三门总成绩  5.按三门平均成绩  6.按学号\n");
+    scanf("%d", &choice);
+    switch (choice)
     {
-        for (j = 0; j < count - i - 1; j++)
+    case 1:
+        for (i = 0; i < count - 1; i++)
         {
-            if (students[j].id > students[j + 1].id)
+            for (j = 0; j < count - i - 1; j++)
             {
-                // 交换学生信息  
-                temp = students[j];
-                students[j] = students[j + 1];
-                students[j + 1] = temp;
+                if (students[j].score1 < students[j + 1].score1)
+                {
+                    // 交换学生信息  
+                    temp = students[j];
+                    students[j] = students[j + 1];
+                    students[j + 1] = temp;
+                }
             }
         }
+        printf("排序后的学生信息：\n");
+        for (int i = 0; i < count; i++)
+        {
+            printf("姓名：%-10s\t学号：%3d\t第一科成绩：%.2f\t第二科成绩：%.2f\t第三科成绩：%.2f\n",
+                students[i].name, students[i].id, students[i].score1, students[i].score2, students[i].score3);
+        }
+        break;
+
+    case 2:
+        for (i = 0; i < count - 1; i++)
+        {
+            for (j = 0; j < count - i - 1; j++)
+            {
+                if (students[j].score2 < students[j + 1].score2)
+                {
+                    // 交换学生信息  
+                    temp = students[j];
+                    students[j] = students[j + 1];
+                    students[j + 1] = temp;
+                }
+            }
+        }
+        printf("排序后的学生信息：\n");
+        for (int i = 0; i < count; i++)
+        {
+            printf("姓名：%-10s\t学号：%3d\t第一科成绩：%.2f\t第二科成绩：%.2f\t第三科成绩：%.2f\n",
+                students[i].name, students[i].id, students[i].score1, students[i].score2, students[i].score3);
+        }
+        break;
+
+    case 3:
+        for (i = 0; i < count - 1; i++)
+        {
+            for (j = 0; j < count - i - 1; j++)
+            {
+                if (students[j].score3 < students[j + 1].score3)
+                {
+                    // 交换学生信息  
+                    temp = students[j];
+                    students[j] = students[j + 1];
+                    students[j + 1] = temp;
+                }
+            }
+        }
+        printf("排序后的学生信息：\n");
+        for (int i = 0; i < count; i++)
+        {
+            printf("姓名：%-10s\t学号：%3d\t第一科成绩：%.2f\t第二科成绩：%.2f\t第三科成绩：%.2f\n",
+                students[i].name, students[i].id, students[i].score1, students[i].score2, students[i].score3);
+        }
+        break;
+
+    case 4:
+        for (i = 0; i < count - 1; i++)
+        {
+            for (j = 0; j < count - i - 1; j++)
+            {
+                if ((students[j].score1 + students[j].score2 + students[j].score3 ) < (students[j+1].score1 + students[j+1].score2 + students[j+1].score3))
+                {
+                    // 交换学生信息  
+                    temp = students[j];
+                    students[j] = students[j + 1];
+                    students[j + 1] = temp;
+                }
+            }
+        }
+        printf("排序后的学生信息：\n");
+        for (int i = 0; i < count; i++)
+        {
+            printf("姓名：%-10s\t学号：%3d\t第一科成绩：%.2f\t第二科成绩：%.2f\t第三科成绩：%.2f\t总成绩：%.2f\n",
+                students[i].name, students[i].id, students[i].score1, students[i].score2, students[i].score3, students[i].score1 + students[i].score2 + students[i].score3);
+        }
+        break;
+
+    case 5:
+        for (i = 0; i < count - 1; i++)
+        {
+            for (j = 0; j < count - i - 1; j++)
+            {
+                if ((students[j].score1 + students[j].score2 + students[j].score3) / 3 < (students[j+1].score1 + students[j+1].score2 + students[j+1].score3) / 3)
+                {
+                    // 交换学生信息  
+                    temp = students[j];
+                    students[j] = students[j + 1];
+                    students[j + 1] = temp;
+                }
+            }
+        }
+        printf("排序后的学生信息：\n");
+        for (int i = 0; i < count; i++)
+        {
+            printf("姓名：%-10s\t学号：%3d\t第一科成绩：%.2f\t第二科成绩：%.2f\t第三科成绩：%.2f\t平均成绩：%.2f\n",
+                students[i].name, students[i].id, students[i].score1, students[i].score2, students[i].score3, (students[i].score1 + students[i].score2 + students[i].score3) / 3);
+        }
+        break;
+
+    case 6:
+        for (i = 0; i < count - 1; i++)
+        {
+            for (j = 0; j < count - i - 1; j++)
+            {
+                if (students[j].id > students[j + 1].id)
+                {
+                    // 交换学生信息  
+                    temp = students[j];
+                    students[j] = students[j + 1];
+                    students[j + 1] = temp;
+                }
+            }
+        }
+        printf("排序后的学生信息：\n");
+        for (int i = 0; i < count; i++)
+        {
+            printf("姓名：%-10s\t学号：%3d\t第一科成绩：%.2f\t第二科成绩：%.2f\t第三科成绩：%.2f\n",
+                students[i].name, students[i].id, students[i].score1, students[i].score2, students[i].score3);
+        }
+        break;
+
+    default:
+        printf("无效的功能编号，请重新输入。\n");
     }
-    printf("排序后的学生信息：\n");
-    for (int i = 0; i < count; i++)
-    {
-        printf("姓名：%s\t学号：%d\t成绩：%.2f\t\n", students[i].name, students[i].id, students[i].score);
-    }
+
 }
 
-// 定义函数来根据学生姓名检索学生信息  
+// √ 定义函数来根据学生姓名检索学生信息  
 bool findStudentByName(const struct Student students[], int count, const char* nameToFind)
 {
     for (int i = 0; i < count; i++)
     {
-        if (strcmp(students[i].name, nameToFind) == 0) 
+        if (strcmp(students[i].name, nameToFind) == 0)
         {
             printf("找到学生信息：\n");
-            printf("姓名：%s\t学号：%d\t成绩：%.2f\n", students[i].name, students[i].id, students[i].score);
+            printf("姓名：%s\t学号：%d\t第一科成绩：%.2f\t第二科成绩：%.2f\t第三科成绩：%.2f\n",
+                students[i].name, students[i].id, students[i].score1, students[i].score2, students[i].score3);
             return true; // 找到匹配项，返回true  
         }
     }
@@ -159,7 +269,7 @@ bool findStudentByName(const struct Student students[], int count, const char* n
     return false; // 未找到匹配项，返回false  
 }
 
-// 定义函数修改和删除学生信息
+// √ 定义函数修改和删除学生信息
 void modifyOrDeleteStudent(struct Student students[], int* count, const char* nameToFind)
 {
     bool found = false;
@@ -176,20 +286,21 @@ void modifyOrDeleteStudent(struct Student students[], int* count, const char* na
         }
     }
 
-    if (!found) 
+    if (!found)
     {
         printf("未找到名为%s的学生信息。\n", nameToFind);
         return;
     }
 
-    char choice;
+
+    char choice0;
     printf("找到学生信息，是否删除该学生（d）或修改成绩（m）？\n");
-    while (scanf(" %c", &choice) != 1 || (choice != 'd' && choice != 'm'))
+    while (scanf(" %c", &choice0) != 1 || (choice0 != 'd' && choice0 != 'm'))
     {
         printf("输入不符合要求，请重新输入（d/m）：\n");
     }
 
-    if (choice == 'd') { // 删除学生  
+    if (choice0 == 'd') { // 删除学生  
         for (int i = index; i < *count - 1; i++)
         {
             students[i] = students[i + 1];
@@ -197,71 +308,76 @@ void modifyOrDeleteStudent(struct Student students[], int* count, const char* na
         (*count)--;
         printf("学生信息已删除。\n");
     }
-    else if (choice == 'm') 
+    else if (choice0 == 'm')
     { // 修改成绩  
+        int choice1;
+        printf("选择要修改的科目（1=第一科，2=第二科，3=第三科）：\n");
+        scanf("%d", &choice1);
+
         float newScore;
         printf("请输入新的成绩：\n");
         scanf("%f", &newScore);
-        students[index].score = newScore;
+
+        switch (choice1)
+        {
+        case 1: students[index].score1 = newScore; break;
+        case 2: students[index].score2 = newScore; break;
+        case 3: students[index].score3 = newScore; break;
+        default: printf("无效的科目选择。\n");
+        }
         printf("学生成绩已更新。\n");
     }
     printf("更新后的学生信息：\n");
     for (int i = 0; i < *count; i++)
     {
-        printf("姓名：%s\t学号：%d\t成绩：%.2f\t\n", students[i].name, students[i].id, students[i].score);
+        printf("姓名：%-10s\t学号：%3d\t第一科成绩：%.2f\t第二科成绩：%.2f\t第三科成绩：%.2f\n",
+            students[i].name, students[i].id, students[i].score1, students[i].score2, students[i].score3);
     }
 }
 
-// 定义函数按分数段统计成绩信息
-void countScoreRanges(const struct Student students[], int count, int scoreRanges[5])
-{
-    // 初始化分数段计数器  
-    for (int i = 0; i < 5; i++) 
-    {
-        scoreRanges[i] = 0;
+// 定义函数分析学生成绩分布段
+void analyzeScoreDistribution(const struct Student students[], int count) {
+    int scoreRanges[3][11] = { 0 }; // [科目][分数段(0-100分，每10分一段)]  
+    for (int i = 0; i < count; i++) {
+        int idx1 = students[i].score1 / 10; // 计算第一科成绩的分数段索引  
+        int idx2 = students[i].score2 / 10; // 计算第二科成绩的分数段索引  
+        int idx3 = students[i].score3 / 10; // 计算第三科成绩的分数段索引  
+        if (idx1 < 10) scoreRanges[0][idx1]++;
+        if (idx2 < 10) scoreRanges[1][idx2]++;
+        if (idx3 < 10) scoreRanges[2][idx3]++;
     }
 
-    // 遍历学生数组，统计每个分数段的人数  
-    for (int i = 0; i < count; i++) {
-        if (students[i].score >= 0 && students[i].score < 60) 
-        {
-            scoreRanges[0]++;
-        }
-        else if (students[i].score >= 60 && students[i].score < 70) 
-        {
-            scoreRanges[1]++;
-        }
-        else if (students[i].score >= 70 && students[i].score < 80) 
-        {
-            scoreRanges[2]++;
-        }
-        else if (students[i].score >= 80 && students[i].score < 90) 
-        {
-            scoreRanges[3]++;
-        }
-        else if (students[i].score >= 90 && students[i].score <= 100) 
-        {
-            scoreRanges[4]++;
+    // 输出分析结果  
+    printf("第一科成绩分布：\n");
+    for (int i = 0; i < 10; i++) {
+        if (scoreRanges[0][i] > 0) {
+            printf("%d0-%d9: %d人\n", i, i + 1, scoreRanges[0][i]);
         }
     }
-    // 打印每个分数段的学生数量  
-    printf("分数段统计：\n");
-    printf("0-59: %d\n", scoreRanges[0]);
-    printf("60-69: %d\n", scoreRanges[1]);
-    printf("70-79: %d\n", scoreRanges[2]);
-    printf("80-89: %d\n", scoreRanges[3]);
-    printf("90-100: %d\n", scoreRanges[4]);
+    printf("第二科成绩分布：\n");
+    for (int i = 0; i < 10; i++) {
+        if (scoreRanges[1][i] > 0) {
+            printf("%d0-%d9: %d人\n", i, i + 1, scoreRanges[1][i]);
+        }
+    }
+    printf("第三科成绩分布：\n");
+    for (int i = 0; i < 10; i++) {
+        if (scoreRanges[2][i] > 0) {
+            printf("%d0-%d9: %d人\n", i, i + 1, scoreRanges[2][i]);
+        }
+    }
 }
 
 int main()
 {
     const char* filename = "students.txt";
-    struct Student students[50]; // 假设最多有50名学生   
+ // 假设最多有50名学生   
     int count = 0; // 已输入的学生数量   
     char nameToFind[50];
     int key = 0;
+    struct Student students[MAX_STUDENTS]; // 在这里也需要加上 struct 关键字  
 
-    while (1) 
+    while (1)
     { // 使用while循环来不断显示功能选择菜单  
         printf("学生成绩管理系统\n");
         printf("0. 退出\n");
@@ -269,7 +385,7 @@ int main()
         printf("2. 输出至文件\n");
         printf("3. 从文件读取\n");
         printf("4. 按成绩排序\n");
-        printf("5. 按学号排序\n");
+        printf("5. 展示内存的内容\n");
         printf("6. 查找学生成绩信息\n");
         printf("7. 修改或删除学生信息\n");
         printf("8. 按分数段统计成绩\n");
@@ -291,7 +407,7 @@ int main()
             break;
 
         case 3:
-            readAndDisplayStudentsFromFile(filename);
+            readStudentsFromFile(filename, students, &count);
             break;
 
         case 4:
@@ -299,7 +415,11 @@ int main()
             break;
 
         case 5:
-            sortStudentsById(students, count);
+            for (int i = 0; i < count; i++)
+            {
+                printf("Name: %s, ID: %d, Grade1: %.2f, Grade2: %.2f, Grade3: %.2f\n",
+                    students[i].name, students[i].id, students[i].score1, students[i].score2, students[i].score3);
+            }
             break;
 
         case 6:
@@ -311,15 +431,15 @@ int main()
         case 7:
             printf("请输入要修改或删除的学生姓名：\n");
             scanf("%49s", nameToFind);
-            if (findStudentByName(students, count, nameToFind)) {
+            if (findStudentByName(students, count, nameToFind))
+            {
                 modifyOrDeleteStudent(students, &count, nameToFind);
             }
             break;
 
         case 8:
         {
-            int scoreRanges[5];
-            countScoreRanges(students, count, scoreRanges);
+            analyzeScoreDistribution(students, count);
             break;
         }
 
